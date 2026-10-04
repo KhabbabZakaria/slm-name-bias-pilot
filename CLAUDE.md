@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Weekend pilot for RQ3 of the Oxford DPhil proposal: does a small language model
+Weekend pilot for RQ3 of the research proposal: does a small language model
 acting as an equity analyst prefer a company because of its **name** rather than
 its **numbers**?
 

@@ -1,6 +1,6 @@
 # Does a small language model pick a stock by its name or its numbers?
 
-A weekend pilot for RQ3 of an Oxford DPhil proposal. Two small open-weight models act as equity analysts and choose between matched pairs of technology companies. The question: do they favour a company because of its **name** rather than its **numbers**?
+A weekend research pilot. Two small open-weight models act as equity analysts and choose between matched pairs of technology companies. The question: do they favour a company because of its **name** rather than its **numbers**?
 
 **Short answer:** not for ordinary large-caps — but a household name moves them a lot, and most of what these models do is driven by the shape of the prompt rather than the companies.
 

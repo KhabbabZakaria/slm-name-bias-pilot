@@ -2,7 +2,7 @@
 
 Does a small language model pick a stock by its **name** or its **numbers**?
 
-A weekend pilot for RQ3 of an Oxford DPhil proposal: Qwen2.5-3B and Qwen2.5-1.5B
+A weekend research pilot: Qwen2.5-3B and Qwen2.5-1.5B
 act as equity analysts and choose between matched pairs of technology companies,
 with names shown, hidden, or swapped onto the other company's fundamentals.
 

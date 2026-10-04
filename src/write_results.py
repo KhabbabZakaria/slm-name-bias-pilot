@@ -383,7 +383,7 @@ def main():
     R = [
         "# Does a small language model pick a stock by its name or its numbers?",
         "",
-        "A weekend pilot for RQ3 of an Oxford DPhil proposal. Two small open-weight models act as "
+        "A weekend research pilot. Two small open-weight models act as "
         "equity analysts and choose between matched pairs of technology companies. The question: do "
         "they favour a company because of its **name** rather than its **numbers**?",
         "",
