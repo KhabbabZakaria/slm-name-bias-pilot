@@ -29,7 +29,6 @@ Point 5 is a single run and still needs its controls, listed in [results/results
 ## Repository
 
 ```
-CLAUDE.md                  the original brief and scope
 data/pairs.csv             20 matched large/small technology pairs, FY2022
 data/universe.csv          all candidate companies pulled from SEC EDGAR
 results/results.md         full write-up: every setup, counts and caveats

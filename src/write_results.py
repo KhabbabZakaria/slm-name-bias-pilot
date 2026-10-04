@@ -169,7 +169,7 @@ def main():
     s3l, s3o, s15 = summ[("qwen2.5-3b", "letters")], summ[("qwen2.5-3b", "ordinal")], summ[("qwen2.5-1.5b", "ordinal")]
 
     L = []
-    L += ["# RQ3 pilot — results for Qwen2.5-3B and Qwen2.5-1.5B", "",
+    L += ["# Results — Qwen2.5-3B and Qwen2.5-1.5B", "",
           "**This is a pilot, not a finding.** 20 company pairs, one sector, two small "
           "models. Numbers in brackets are 95% intervals that resample the 20 pairs, so "
           "they reflect how few pairs there are, not how many calls were made.", "",
@@ -430,7 +430,6 @@ def main():
         "## Repository",
         "",
         "```",
-        "CLAUDE.md                  the original brief and scope",
         "data/pairs.csv             20 matched large/small technology pairs, FY2022",
         "data/universe.csv          all candidate companies pulled from SEC EDGAR",
         "results/results.md         full write-up: every setup, counts and caveats",

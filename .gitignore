@@ -25,3 +25,6 @@ scratch/
 
 # Model weights are cached outside the repo by huggingface_hub (~/.cache),
 # so nothing to ignore here -- but never commit weights if that changes.
+
+# Internal brief, kept local
+CLAUDE.md

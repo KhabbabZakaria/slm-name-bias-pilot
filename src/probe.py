@@ -1,7 +1,7 @@
 """Recognition probe: can the model recall these companies' FY2022 ratios?
 
 Not a fourth condition. The factorial stays at 1,200 calls; this is a separate
-diagnostic run against tickers alone, which is what keeps it inside CLAUDE.md's
+diagnostic run against tickers alone, which is what keeps it inside the brief's
 rule against adding conditions mid-run.
 
 Why it is needed: under the swap, a model shown "Amphenol Corporation" over

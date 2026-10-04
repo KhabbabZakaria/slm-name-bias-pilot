@@ -8,7 +8,7 @@ Writes results/summary.md.
 3. Swap-following rate     -- in the swapped condition, share of choices that
    followed the numbers rather than the name. The headline.
 
-Defining (3) needs a reference. CLAUDE.md: "A model following the numbers flips
+Defining (3) needs a reference. the brief: "A model following the numbers flips
 its choice." Flips relative to what it chose when name and numbers agreed, so
 the reference for each pair is its majority choice in the identified condition.
 Under the swap, following the numbers means picking the slot that now carries
@@ -18,7 +18,7 @@ Pairs whose identified choices split exactly 5/5 have no reference and are
 excluded from (3), and the count is reported. The same rate with the anonymised
 condition as reference is reported as a sensitivity check.
 
-On the intervals: Wilson intervals, as CLAUDE.md specifies, treat every sample
+On the intervals: Wilson intervals, as the brief specifies, treat every sample
 as independent. They are not -- ten samples of the same pair share the pair --
 so the effective sample size is nearer the 20 pairs than the 200 choices. A
 pair-level bootstrap interval is reported beside each Wilson interval; where the
@@ -173,7 +173,7 @@ def fmt(r, pct=True):
 def main():
     rows = [json.loads(l) for l in RAW.open()]
     models = sorted({r["model"] for r in rows})
-    lines = ["# RQ3 pilot — summary", "",
+    lines = ["# Pilot summary — first run, original layout", "",
              "**Pilot, not a result.** 20 pairs; n is stated with every number.", ""]
     if (ROOT / "results" / "replication.md").exists():
         lines += ["> **Superseded headline.** This file covers only the first run in the "
@@ -238,12 +238,12 @@ def main():
         for cond, r in oc.items():
             L.append(f"- {cond}: {fmt(r)}")
 
-        # CLAUDE.md's "What counts as a result", applied mechanically.
+        # the brief's "What counts as a result", applied mechanically.
         low_consistency = all(r["p"] < 0.6 for r in oc.values())
         anon_ok = anon["boot"][0] <= 0.5 <= anon["boot"][1]
         swap_above_null = swap_id["boot"][0] > null["hi"]
         swap_below_half = swap_id["boot"][1] < 0.5
-        L += ["", "### Decision rules (CLAUDE.md)", "",
+        L += ["", "### Decision rules (from the brief)", "",
               f"- Parse failures high? **{'yes' if fails/len(mr) > 0.05 else 'no'}** ({100*fails/len(mr):.1f}%)",
               f"- Order consistency low? **{'yes' if low_consistency else 'no'}** "
               f"(all conditions below 60%; slot-only baseline {100*consistency_null:.1f}%)",
@@ -288,11 +288,11 @@ def main():
     lines += ["## Limitations", "",
               "- **One model.** Qwen2.5-3B-Instruct only. The 7B run was abandoned at "
               "123/600 calls: on this 8GB machine it swapped (~9.6 s/call) and froze the "
-              "system. The per-model-size comparison CLAUDE.md asks for is not available.",
+              "system. The per-model-size comparison the brief asks for is not available.",
               "- **4-bit weights** (MLX), not fp16. Nothing here shows quantisation is "
               "neutral for name bias.",
               "- **Samples are not independent.** Ten samples share each pair, so the "
-              "effective n is close to 20. Wilson intervals are reported because CLAUDE.md "
+              "effective n is close to 20. Wilson intervals are reported because the brief "
               "asks for them; the pair-bootstrap intervals are the ones to trust.",
               "- **The anonymised control is weaker than designed.** With a strong position "
               "bias and every pair shown in both orders, position alone pushes the "

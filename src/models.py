@@ -7,7 +7,7 @@ them.
 
 Weights are 4-bit. Qwen2.5-7B-Instruct at fp16 is roughly 15GB and does not fit
 in this machine's 8GB of unified memory, so quantisation is forced rather than
-chosen. It is a documented deviation from the models named in CLAUDE.md and
+chosen. It is a documented deviation from the models named in the brief and
 belongs in summary.md as a limitation: a 4-bit model is not the fp16 model, and
 nothing here establishes that quantisation is neutral for name bias.
 """

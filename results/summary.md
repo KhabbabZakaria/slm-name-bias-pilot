@@ -1,4 +1,4 @@
-# RQ3 pilot — summary
+# Pilot summary — first run, original layout
 
 **Pilot, not a result.** 20 pairs; n is stated with every number.
 
@@ -32,7 +32,7 @@ Same company chosen when A and B are swapped, matched by sample index. A model c
 - anonymised: 31.0%  (k=31/100; Wilson 95% 22.8–40.6; pair-bootstrap 95% 16.0–48.0)
 - swapped: 39.0%  (k=39/100; Wilson 95% 30.0–48.8; pair-bootstrap 95% 27.0–51.0)
 
-### Decision rules (CLAUDE.md)
+### Decision rules (from the brief)
 
 - Parse failures high? **no** (0.0%)
 - Order consistency low? **yes** (all conditions below 60%; slot-only baseline 38.8%)
@@ -50,9 +50,9 @@ At this model size there is no sign of name bias: under the swap the model follo
 
 ## Limitations
 
-- **One model.** Qwen2.5-3B-Instruct only. The 7B run was abandoned at 123/600 calls: on this 8GB machine it swapped (~9.6 s/call) and froze the system. The per-model-size comparison CLAUDE.md asks for is not available.
+- **One model.** Qwen2.5-3B-Instruct only. The 7B run was abandoned at 123/600 calls: on this 8GB machine it swapped (~9.6 s/call) and froze the system. The per-model-size comparison the brief asks for is not available.
 - **4-bit weights** (MLX), not fp16. Nothing here shows quantisation is neutral for name bias.
-- **Samples are not independent.** Ten samples share each pair, so the effective n is close to 20. Wilson intervals are reported because CLAUDE.md asks for them; the pair-bootstrap intervals are the ones to trust.
+- **Samples are not independent.** Ten samples share each pair, so the effective n is close to 20. Wilson intervals are reported because the brief asks for them; the pair-bootstrap intervals are the ones to trust.
 - **The anonymised control is weaker than designed.** With a strong position bias and every pair shown in both orders, position alone pushes the anonymised rate toward 50%. Passing the control here is less evidence of good matching than it would be for a model without position bias.
 - **The probe shows no stated recall, which is not the same as no recognition.** Every answer was UNKNOWN, identically for every company. That looks like blanket compliance with the "do not guess" instruction; implicit recognition is not ruled out.
 

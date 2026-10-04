@@ -27,7 +27,7 @@ FISCAL_YEAR = 2022
 PRIOR_YEAR = FISCAL_YEAR - 1
 
 USER_AGENT = os.environ.get(
-    "SEC_USER_AGENT", "rq3-pilot research-contact@example.com"
+    "SEC_USER_AGENT", "fundamentals-pilot research-contact@example.com"
 )
 HEADERS = {"User-Agent": USER_AGENT, "Accept-Encoding": "gzip, deflate"}
 RATE_LIMIT_S = 0.12  # SEC asks for <= 10 requests/second

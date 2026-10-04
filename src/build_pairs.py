@@ -85,7 +85,7 @@ def match_distance(big, small):
     #
     # Matching on growth and operating margin alone leaves the other three free,
     # and a pair can be tight on both matched ratios while one company sweeps all
-    # five -- Autodesk/Bentley and Fortinet/Synaptics both did. That is CLAUDE.md's
+    # five -- Autodesk/Bentley and Fortinet/Synaptics both did. That is the brief's
     # own disqualifier: a human picks the winner instantly, so the pair measures
     # nothing.
     #

@@ -2,7 +2,7 @@
 
 This is a hand-assembled candidate list, not a scan of all of EDGAR. Scanning
 every filer for its SIC code costs one request per company across ~10k filers;
-at pilot scale that is the kind of time sink CLAUDE.md's two-hour fallback
+at pilot scale that is the kind of time sink the brief's two-hour fallback
 clause exists to avoid. The SIC code of every candidate below is still verified
 against EDGAR in fetch_fundamentals.py, so membership in the technology sector
 is checked, not assumed -- this list only decides who gets looked at.
