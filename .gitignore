@@ -1,0 +1,27 @@
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+
+# 689MB of raw EDGAR companyfacts JSON. Regenerable by rerunning
+# src/fetch_fundamentals.py; data/universe.csv is the reproducible artefact.
+data/cache/
+
+# macOS / editors
+.DS_Store
+.vscode/
+.idea/
+
+# Local scratch
+test.py
+scratch/
+*.log
+
+# Model weights are cached outside the repo by huggingface_hub (~/.cache),
+# so nothing to ignore here -- but never commit weights if that changes.
