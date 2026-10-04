@@ -304,8 +304,12 @@ def main():
             if not ap:
                 continue
             (b, bn), (f, fn) = ap["base"], ap["fake"]
-            L.append(f"| {label} | {b}/{bn} ({100*b/bn:.1f}%) | {f}/{fn} ({100*f/fn:.1f}%) | "
-                     f"**{100*(f/fn-b/bn):+.1f} pts** [{100*ap['ci'][0]:+.1f} to {100*ap['ci'][1]:+.1f}] |")
+            # 1.5B answers FIRST in ~97% of cases whatever the names are, so the
+            # difference is not a measurement of anything about names.
+            change = (f"**{100*(f/fn-b/bn):+.1f} pts** [{100*ap['ci'][0]:+.1f} to "
+                      f"{100*ap['ci'][1]:+.1f}]" if label != "1.5B"
+                      else f"not interpretable ({100*(f/fn-b/bn):+.1f} pts)")
+            L.append(f"| {label} | {b}/{bn} ({100*b/bn:.1f}%) | {f}/{fn} ({100*f/fn:.1f}%) | {change} |")
         if ap3:
             (sb, sbn), (sf, sfn) = ap3["side"]["small"]
             (lb, lbn), (lf, lfn) = ap3["side"]["large"]
@@ -376,12 +380,16 @@ def main():
     OUT.write_text("\n".join(L) + "\n")
     print(f"-> {OUT}")
 
-    # Short front-page version at the repo root, generated from the same numbers
-    # so the two files cannot drift apart.
+    # The README is the front page, generated from the same numbers so it cannot
+    # drift from the detailed write-up. There is deliberately no second
+    # results.md at the repo root: two files of the same name that differ leave a
+    # reader unable to tell which to trust.
     swap_l, swap_o = ci(s3l[1]["swap"]), ci(s3o[1]["swap"])
     ap_delta = 100 * (ap3["fake"][0] / ap3["fake"][1] - ap3["base"][0] / ap3["base"][1]) if ap3 else None
     R = [
-        "# Does a small language model pick a stock by its name or its numbers?",
+        "# slm-name-bias-pilot",
+        "",
+        "**Does a small language model pick a stock by its name or its numbers?**",
         "",
         "A weekend research pilot. Two small open-weight models act as "
         "equity analysts and choose between matched pairs of technology companies. The question: do "
@@ -398,7 +406,7 @@ def main():
         f"| Effect of showing real large-cap names | {100*s3l[1]['name_effect']:+.1f} pts "
         f"[{100*s3l[2]:+.1f} to {100*s3l[3]:+.1f}] | not measurable |",
         f"| Effect of relabelling a company \"Apple Inc. (AAPL)\" | **{ap_delta:+.0f} pts** "
-        f"[{100*ap3['ci'][0]:+.0f} to {100*ap3['ci'][1]:+.0f}] | {100*(ap15['fake'][0]/ap15['fake'][1]-ap15['base'][0]/ap15['base'][1]):+.1f} pts |"
+        f"[{100*ap3['ci'][0]:+.0f} to {100*ap3['ci'][1]:+.0f}] | not interpretable |"
         if ap3 and ap15 else None,
         f"| Followed the numbers when they were swapped | {swap_l} (letters), {swap_o} (First/Second) | "
         f"{ci(s15[1]['swap'])}, not interpretable |",
@@ -449,7 +457,8 @@ def main():
         "./venv/bin/python src/validate_pairs.py       # pair quality checks",
         "cd src && ../venv/bin/python test_prompts.py  # prompt guards (name/currency leaks)",
         "",
-        "# one 600-call run (20 pairs x 3 conditions x 2 orders x 5 samples)",
+        "# one 600-call run: 20 pairs x 3 conditions x 2 orderings x 5 samples",
+        "# sampling is temperature 0.7 throughout, logged in every row",
         "caffeinate -i ../venv/bin/python run.py --layout a_first",
         "",
         "../venv/bin/python write_results.py           # rebuilds results/results.md and this file",
@@ -467,12 +476,21 @@ def main():
         "are follow-ups to a bias found in the data, not part of the original plan. A real study "
         "must fix the rotation of company order *and* answer order before the first call.",
         "- **One sector** (technology) and **one fiscal year** (2022).",
+        "- **The recognition check came back empty, which is itself a limitation.** Asked to recall "
+        "these companies' FY2022 ratios, 3B answered UNKNOWN for all 40, including household "
+        "names. That looks like compliance with the \"do not guess\" instruction rather than "
+        "absent knowledge, so it does **not** rule out an alternative reading of the Apple result: "
+        "the model may be reacting to the numbers not matching Apple's real financials rather than "
+        "to the name itself.",
+        "- **`results/raw_7b_partial_abandoned.jsonl` is excluded from every number here.** Those "
+        "123 rows are the 7B run that froze the machine; they are committed for the record only "
+        "and must not be pooled with the rest.",
         "",
         "Full detail, including what went wrong along the way, is in "
         "[results/results.md](results/results.md).",
         "",
     ]
-    root_out = ROOT / "results.md"
+    root_out = ROOT / "README.md"
     root_out.write_text("\n".join(x for x in R if x is not None) + "\n")
     print(f"-> {root_out}")
 

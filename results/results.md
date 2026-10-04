@@ -191,7 +191,7 @@ Compared with the same prompts using the second company's real name (20 pairs ×
 | model | picked the second company — real name | — labelled "Apple" | change |
 |---|---|---|---|
 | 3B | 70/197 (35.5%) | 107/194 (55.2%) | **+19.6 pts** [+10.4 to +29.1] |
-| 1.5B | 5/198 (2.5%) | 5/196 (2.6%) | **+0.0 pts** [-2.0 to +2.1] |
+| 1.5B | 5/198 (2.5%) | 5/196 (2.6%) | not interpretable (+0.0 pts) |
 
 **3B:**
 
