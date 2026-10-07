@@ -10,7 +10,7 @@ Calls: 7,200 on 3B, 2,400 on 1.5B. Unreadable answers: 4 on 3B, 17 on 1.5B.
 2. **Both models were driven mainly by how the question was laid out, not by the companies.** This is the kind of position bias the reference paper reports.
 3. **1.5B cannot be used for this question.** It copies whichever answer line is written first, 96% of the time.
 4. **3B can be used, if the layout is rotated.** With all layouts combined so the position effects cancel, 3B followed the numbers over the name 60% [54–67] of the time with letters and 70% [60–78] with First/Second labels.
-5. **But a very famous name does move 3B.** Relabelling one company "Apple Inc. (AAPL)" — numbers unchanged — raised how often 3B picked it by +20 points. This is one run and still needs its controls (see Finding 4).
+5. **But name familiarity does move 3B — against the layout.** Relabelling one company "Apple Inc. (AAPL)", numbers unchanged, raised how often 3B picked it by +20 points (replicated: +21); Microsoft gave +17; an invented name cost -12. But the same Apple label on the company the layout already favours did nothing (-0.7), so the effect only shows from behind. See Finding 4.
 
 ## What we tested
 
@@ -174,42 +174,50 @@ Each letter setup was run twice with different random seeds.
 
 The layout effects and the swap result came out nearly the same both times. The name effect moved around between runs (roughly −4 to +6 points), which is what noise around zero looks like. The First/Second runs have been done once each and have not been replicated yet.
 
-## Finding 4 — a famous fake name moves 3B
+## Finding 4 — name familiarity moves 3B, but only against the layout
 
-The real large-caps in our pairs ($10–150bn: Lam Research, Autodesk, Gartner…) showed no name effect. To test a genuinely famous name, the **second** company in every prompt was relabelled **"Apple Inc. (AAPL)"**, keeping its own real numbers. The first company kept its real name. Everything else matched First/Second setup 1:
+The real large-caps in these pairs ($10–150bn: Lam Research, Autodesk, Gartner…) showed no name effect. These tests replace one company's name and ticker while leaving its own real numbers in place, so any change in how often that company is picked is down to the name. The baseline is the identical prompts with real names. Layout is First/Second setup 1 throughout:
 
 ```
 First company: Amphenol Corporation (APH)     <- real name, real numbers
-Second company: Apple Inc. (AAPL)               <- fake name over Manhattan Associates' real numbers
+Second company: Apple Inc. (AAPL)               <- new label over Manhattan Associates' real numbers
 CHOICE: FIRST
 or
 CHOICE: SECOND
 ```
 
-Compared with the same prompts using the second company's real name (20 pairs × both orders × 5 samples ≈ 200 answers each):
+About 200 answers per cell (20 pairs × both orderings × 5 samples).
 
-| model | picked the second company — real name | — labelled "Apple" | change |
-|---|---|---|---|
-| 3B | 70/197 (35.5%) | 107/194 (55.2%) | **+19.6 pts** [+10.4 to +29.1] |
-| 1.5B | 5/198 (2.5%) | 5/196 (2.6%) | not interpretable (+0.0 pts) |
+| label | slot | picked with real name | picked with new label | change | pairs up/down |
+|---|---|---|---|---|---|
+| Apple Inc. (AAPL) | second | 70/197 (35.5%) | 107/194 (55.2%) | **+19.6 pts** [+10.4 to +29.1] | 17/2 |
+| Apple Inc. (AAPL), rerun | second | 70/197 (35.5%) | 110/195 (56.4%) | **+20.9 pts** [+13.5 to +29.5] | 18/0 |
+| Microsoft Corporation (MSFT) | second | 70/197 (35.5%) | 105/199 (52.8%) | **+17.2 pts** [+10.1 to +25.3] | 15/2 |
+| Norwell Systems (NWLS) — control | second | 70/197 (35.5%) | 45/195 (23.1%) | **-12.5 pts** [-19.5 to -5.3] | 3/14 |
+| Apple Inc. (AAPL) | first | 127/197 (64.5%) | 125/196 (63.8%) | **-0.7 pts** [-6.1 to +4.5] | 7/7 |
 
-**3B:**
+Brackets are pair-bootstrap 95% intervals.
 
-- The Apple label raised picks in **17 of 20 pairs**; 2 went the other way.
-- It worked on both sides: Apple label on the real small-cap 28/99 → 46/97; on the real large-cap 42/98 → 61/97.
-- In 104 of its 107 "Apple" picks the model named Apple and justified the pick with the numbers ("higher margins", "lower debt"). But the numbers were identical under the real name, where the same company was picked far less often. The name moved the choice; the numbers were the explanation given afterwards.
+**What holds up:**
 
-**1.5B:** no change. It answers FIRST about 97% of the time whatever the names are, so no name could move it. This says nothing about whether 1.5B has name bias.
+- **It is familiarity, not novelty.** The invented name Norwell Systems moved the choice -12.5 points — the *opposite* direction, with an interval excluding zero. An unfamiliar name is a penalty. The gradient from an invented name to a household one spans about 32 points.
+- **It replicates.** A rerun with a different seed gave +20.9 points against +19.6, moving 18 of 20 pairs up.
+- **It is not about the word "Apple".** Microsoft gave +17.2 points [+10.1 to +25.3].
 
-**Why this matters:** name bias at 3B seems to appear for household names, not for large-caps in general. That fits the idea that what counts is how often the model has seen a name, not the company's size.
+**What does not hold up — the mirror test:**
 
-**Not yet established.** This is one run. Before relying on it:
+- Moving the Apple label to the **first** company changed nothing: -0.7 points [-6.1 to +4.5], 7 pairs up and 7 down. The first slot already wins 64% of the time, and the famous label adds nothing on top.
+- So the effect appears **only where the layout is working against the labelled company**. Label and position interact: a familiar name can overcome a position bias pointing the other way, but it buys nothing when position already favours it.
+- Consequence for how this is quoted: "+20 points" is the size **in the disfavoured slot**, not a general name effect. A pure name effect has not been demonstrated.
 
-1. **Unknown-name control** — relabel the second company with a made-up name (e.g. "Norwell Systems (NWLS)"). If that also raises picks, the effect is "any new name", not "famous name".
-2. **Mirror test** — put the Apple label on the *first* company and check it pulls that way too.
-3. **Other famous names** — Microsoft, NVIDIA — to show it is not something about the word "Apple".
-4. **A second run** of the Apple test itself.
-5. **Mismatch caveat** — the numbers under "Apple" are not Apple's. A model that knows Apple's real margins could be reacting to that mismatch as well as to the name.
+**1.5B:** no change from the Apple label (5/198 → 5/196). It answers FIRST in about 97% of cases whatever the names are, so no label could move it. This says nothing about whether 1.5B has name bias.
+
+**Still open:**
+
+1. **The mirror asymmetry needs explaining.** Is it a ceiling, or does a familiar name genuinely only help from behind? Testing the invented name on the first slot would separate these: if Norwell *lowers* the first slot, the gradient is symmetrical and only the Apple direction is saturated.
+2. **The gradient needs more rungs.** Five labels is enough to show a direction, not a dose-response curve.
+3. **Larger models.** Everything here is one 3B model.
+
 
 ## What went wrong, and what we learned
 

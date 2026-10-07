@@ -10,6 +10,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from analyse import rate
+from analyse_name_tests import TESTS as NAME_TESTS, rates as name_rates
 from analyse_replication import name_effect_ci, numbers
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -139,6 +140,24 @@ def fake_apple(model):
     }
 
 
+def name_tests(model):
+    """Every relabelling test vs the real-name baseline, keyed by tag."""
+    base_path = RES / ("raw_ord_a_first.jsonl" if model == "qwen2.5-3b"
+                       else f"raw_ord_a_first__{model}.jsonl")
+    if not base_path.exists():
+        return {}
+    base = [r for r in map(json.loads, base_path.open())
+            if r["condition"] == "identified"]
+    out = {}
+    for tag, stem, label, slot in NAME_TESTS:
+        path = RES / f"{stem}__{model}.jsonl"
+        if path.exists():
+            r = name_rates(base, [json.loads(l) for l in path.open()], slot)
+            r["label"], r["slot"] = label, slot
+            out[tag] = r
+    return out
+
+
 def main():
     data = {}
     for model in ("qwen2.5-3b", "qwen2.5-1.5b"):
@@ -162,6 +181,7 @@ def main():
         summ[(model, scheme)] = (label, x, lo, hi, pulls(rows), len(rows))
 
     ap3, ap15 = fake_apple("qwen2.5-3b"), fake_apple("qwen2.5-1.5b")
+    nt = name_tests("qwen2.5-3b")
     n3 = sum(len(pooled("qwen2.5-3b", s)) for s in ("letters", "ordinal"))
     n15 = len(pooled("qwen2.5-1.5b", "ordinal"))
     fails = {m: sum(1 for s in ("letters", "ordinal") for r in pooled(m, s)
@@ -188,10 +208,14 @@ def main():
           f"4. **3B can be used, if the layout is rotated.** With all layouts combined so the position "
           f"effects cancel, 3B followed the numbers over the name {ci(s3l[1]['swap'])} of the time with "
           f"letters and {ci(s3o[1]['swap'])} with First/Second labels.",
-          f"5. **But a very famous name does move 3B.** Relabelling one company \"Apple Inc. (AAPL)\" "
-          f"— numbers unchanged — raised how often 3B picked it by "
-          f"{100*(ap3['fake'][0]/ap3['fake'][1]-ap3['base'][0]/ap3['base'][1]):+.0f} points. "
-          f"This is one run and still needs its controls (see Finding 4).", ""]
+          f"5. **But name familiarity does move 3B — against the layout.** Relabelling one company "
+          f"\"Apple Inc. (AAPL)\", numbers unchanged, raised how often 3B picked it by "
+          f"{100*nt['apple']['delta']:+.0f} points (replicated: "
+          f"{100*nt['apple_rep2']['delta']:+.0f}); Microsoft gave "
+          f"{100*nt['microsoft']['delta']:+.0f}; an invented name cost "
+          f"{100*nt['norwell']['delta']:+.0f}. But the same Apple label on the company the layout "
+          f"already favours did nothing ({100*nt['apple_first']['delta']:+.1f}), so the effect only "
+          f"shows from behind. See Finding 4.", ""] if nt else []
 
     L += ["## What we tested", "",
           "Each prompt showed two technology companies from FY2022 — one large, one small — "
@@ -287,56 +311,75 @@ def main():
           "zero looks like. The First/Second runs have been done once each and have not been "
           "replicated yet.", ""]
 
-    if ap3 or ap15:
-        L += ["## Finding 4 — a famous fake name moves 3B", "",
-              "The real large-caps in our pairs ($10–150bn: Lam Research, Autodesk, Gartner…) showed no "
-              "name effect. To test a genuinely famous name, the **second** company in every prompt was "
-              "relabelled **\"Apple Inc. (AAPL)\"**, keeping its own real numbers. The first company kept "
-              "its real name. Everything else matched First/Second setup 1:", "",
+    if nt:
+        row = lambda t: (f"| {nt[t]['label']} | {nt[t]['slot']} | "
+                         f"{nt[t]['base'][0]}/{nt[t]['base'][1]} "
+                         f"({100*nt[t]['base'][0]/nt[t]['base'][1]:.1f}%) | "
+                         f"{nt[t]['test'][0]}/{nt[t]['test'][1]} "
+                         f"({100*nt[t]['test'][0]/nt[t]['test'][1]:.1f}%) | "
+                         f"**{100*nt[t]['delta']:+.1f} pts** "
+                         f"[{100*nt[t]['ci'][0]:+.1f} to {100*nt[t]['ci'][1]:+.1f}] | "
+                         f"{nt[t]['up']}/{nt[t]['down']} |")
+        L += ["## Finding 4 — name familiarity moves 3B, but only against the layout", "",
+              "The real large-caps in these pairs ($10–150bn: Lam Research, Autodesk, Gartner…) "
+              "showed no name effect. These tests replace one company's name and ticker while "
+              "leaving its own real numbers in place, so any change in how often that company is "
+              "picked is down to the name. The baseline is the identical prompts with real names. "
+              "Layout is First/Second setup 1 throughout:", "",
               "```\nFirst company: Amphenol Corporation (APH)     <- real name, real numbers\n"
-              "Second company: Apple Inc. (AAPL)               <- fake name over Manhattan Associates' real numbers\n"
-              "CHOICE: FIRST\nor\nCHOICE: SECOND\n```", "",
-              "Compared with the same prompts using the second company's real name "
-              "(20 pairs × both orders × 5 samples ≈ 200 answers each):", "",
-              "| model | picked the second company — real name | — labelled \"Apple\" | change |",
-              "|---|---|---|---|"]
-        for label, ap in (("3B", ap3), ("1.5B", ap15)):
-            if not ap:
-                continue
-            (b, bn), (f, fn) = ap["base"], ap["fake"]
-            # 1.5B answers FIRST in ~97% of cases whatever the names are, so the
-            # difference is not a measurement of anything about names.
-            change = (f"**{100*(f/fn-b/bn):+.1f} pts** [{100*ap['ci'][0]:+.1f} to "
-                      f"{100*ap['ci'][1]:+.1f}]" if label != "1.5B"
-                      else f"not interpretable ({100*(f/fn-b/bn):+.1f} pts)")
-            L.append(f"| {label} | {b}/{bn} ({100*b/bn:.1f}%) | {f}/{fn} ({100*f/fn:.1f}%) | {change} |")
-        if ap3:
-            (sb, sbn), (sf, sfn) = ap3["side"]["small"]
-            (lb, lbn), (lf, lfn) = ap3["side"]["large"]
-            L += ["", "**3B:**", "",
-                  f"- The Apple label raised picks in **{ap3['up']} of 20 pairs**; {ap3['down']} went the other way.",
-                  f"- It worked on both sides: Apple label on the real small-cap {sb}/{sbn} → {sf}/{sfn}; "
-                  f"on the real large-cap {lb}/{lbn} → {lf}/{lfn}.",
-                  f"- In {ap3['mentions']} of its {ap3['picks']} \"Apple\" picks the model named Apple and "
-                  "justified the pick with the numbers (\"higher margins\", \"lower debt\"). But the numbers "
-                  "were identical under the real name, where the same company was picked far less often. "
-                  "The name moved the choice; the numbers were the explanation given afterwards."]
+              "Second company: Apple Inc. (AAPL)               <- new label over Manhattan "
+              "Associates' real numbers\nCHOICE: FIRST\nor\nCHOICE: SECOND\n```", "",
+              "About 200 answers per cell (20 pairs × both orderings × 5 samples).", "",
+              "| label | slot | picked with real name | picked with new label | change | pairs up/down |",
+              "|---|---|---|---|---|---|"]
+        for t in ("apple", "apple_rep2", "microsoft", "norwell", "apple_first"):
+            if t in nt:
+                L.append(row(t))
+        L += ["", "Brackets are pair-bootstrap 95% intervals.", ""]
+        if "apple" in nt and "norwell" in nt:
+            a, n, gap = nt["apple"], nt["norwell"], nt["apple"]["delta"] - nt["norwell"]["delta"]
+            L += ["**What holds up:**", "",
+                  f"- **It is familiarity, not novelty.** The invented name Norwell Systems moved "
+                  f"the choice {100*n['delta']:+.1f} points — the *opposite* direction, with an "
+                  f"interval excluding zero. An unfamiliar name is a penalty. The gradient from an "
+                  f"invented name to a household one spans about {100*gap:.0f} points."]
+            if "apple_rep2" in nt:
+                L.append(f"- **It replicates.** A rerun with a different seed gave "
+                         f"{100*nt['apple_rep2']['delta']:+.1f} points against "
+                         f"{100*a['delta']:+.1f}, moving {nt['apple_rep2']['up']} of 20 pairs up.")
+            if "microsoft" in nt:
+                L.append(f"- **It is not about the word \"Apple\".** Microsoft gave "
+                         f"{100*nt['microsoft']['delta']:+.1f} points "
+                         f"[{100*nt['microsoft']['ci'][0]:+.1f} to "
+                         f"{100*nt['microsoft']['ci'][1]:+.1f}].")
+        if "apple_first" in nt:
+            m = nt["apple_first"]
+            L += ["", "**What does not hold up — the mirror test:**", "",
+                  f"- Moving the Apple label to the **first** company changed nothing: "
+                  f"{100*m['delta']:+.1f} points [{100*m['ci'][0]:+.1f} to {100*m['ci'][1]:+.1f}], "
+                  f"{m['up']} pairs up and {m['down']} down. The first slot already wins "
+                  f"{100*m['base'][0]/m['base'][1]:.0f}% of the time, and the famous label adds "
+                  "nothing on top.",
+                  "- So the effect appears **only where the layout is working against the "
+                  "labelled company**. Label and position interact: a familiar name can overcome "
+                  "a position bias pointing the other way, but it buys nothing when position "
+                  "already favours it.",
+                  "- Consequence for how this is quoted: \"+20 points\" is the size **in the "
+                  "disfavoured slot**, not a general name effect. A pure name effect has not been "
+                  "demonstrated."]
         if ap15:
-            L += ["", "**1.5B:** no change. It answers FIRST about 97% of the time whatever the names are, so "
-                  "no name could move it. This says nothing about whether 1.5B has name bias."]
-        L += ["", "**Why this matters:** name bias at 3B seems to appear for household names, not for "
-              "large-caps in general. That fits the idea that what counts is how often the model has "
-              "seen a name, not the company's size.", "",
-              "**Not yet established.** This is one run. Before relying on it:", "",
-              "1. **Unknown-name control** — relabel the second company with a made-up name "
-              "(e.g. \"Norwell Systems (NWLS)\"). If that also raises picks, the effect is \"any new "
-              "name\", not \"famous name\".",
-              "2. **Mirror test** — put the Apple label on the *first* company and check it pulls that way too.",
-              "3. **Other famous names** — Microsoft, NVIDIA — to show it is not something about the word \"Apple\".",
-              "4. **A second run** of the Apple test itself.",
-              "5. **Mismatch caveat** — the numbers under \"Apple\" are not Apple's. A model that knows "
-              "Apple's real margins could be reacting to that mismatch as well as to the name.", ""]
-
+            L += ["", "**1.5B:** no change from the Apple label (5/198 → 5/196). It answers FIRST "
+                  "in about 97% of cases whatever the names are, so no label could move it. This "
+                  "says nothing about whether 1.5B has name bias."]
+        L += ["", "**Still open:**", "",
+              "1. **The mirror asymmetry needs explaining.** Is it a ceiling, or does a familiar "
+              "name genuinely only help from behind? Testing the invented name on the first slot "
+              "would separate these: if Norwell *lowers* the first slot, the gradient is "
+              "symmetrical and only the Apple direction is saturated.",
+              "2. **The gradient needs more rungs.** Five labels is enough to show a direction, "
+              "not a dose-response curve.",
+              "3. **Larger models.** Everything here is one 3B model.", ""]
+        L += [""]
     L += ["## What went wrong, and what we learned", "",
           "- **The first run looked like a clean result and wasn't.** Setup 1 alone gave "
           "\"follows the numbers 71% of the time\". Moving the companies around dropped that to "
@@ -395,8 +438,10 @@ def main():
         "equity analysts and choose between matched pairs of technology companies. The question: do "
         "they favour a company because of its **name** rather than its **numbers**?",
         "",
-        "**Short answer:** not for ordinary large-caps — but a household name moves them a lot, and "
-        "most of what these models do is driven by the shape of the prompt rather than the companies.",
+        "**Short answer:** not for ordinary large-caps. A household name does move the 3B model — "
+        "about 20 points — but only when the prompt layout is working against that company. Most "
+        "of what these small models do is driven by the shape of the prompt rather than by the "
+        "companies in it.",
         "",
         "## Headline numbers",
         "",
@@ -405,9 +450,19 @@ def main():
         f"| Calls | {n3:,} | {n15:,} |",
         f"| Effect of showing real large-cap names | {100*s3l[1]['name_effect']:+.1f} pts "
         f"[{100*s3l[2]:+.1f} to {100*s3l[3]:+.1f}] | not measurable |",
-        f"| Effect of relabelling a company \"Apple Inc. (AAPL)\" | **{ap_delta:+.0f} pts** "
-        f"[{100*ap3['ci'][0]:+.0f} to {100*ap3['ci'][1]:+.0f}] | not interpretable |"
-        if ap3 and ap15 else None,
+        f"| Relabelling a company \"Apple Inc. (AAPL)\" — in the slot the layout disfavours | "
+        f"**{100*nt['apple']['delta']:+.0f} pts** [{100*nt['apple']['ci'][0]:+.0f} to "
+        f"{100*nt['apple']['ci'][1]:+.0f}], replicated {100*nt['apple_rep2']['delta']:+.0f} | "
+        f"not interpretable |" if nt and ap15 else None,
+        f"| …\"Microsoft Corporation (MSFT)\" | {100*nt['microsoft']['delta']:+.0f} pts "
+        f"[{100*nt['microsoft']['ci'][0]:+.0f} to {100*nt['microsoft']['ci'][1]:+.0f}] | — |"
+        if nt else None,
+        f"| …an invented name, \"Norwell Systems (NWLS)\" | {100*nt['norwell']['delta']:+.0f} pts "
+        f"[{100*nt['norwell']['ci'][0]:+.0f} to {100*nt['norwell']['ci'][1]:+.0f}] | — |"
+        if nt else None,
+        f"| …\"Apple\" in the slot the layout already favours | "
+        f"{100*nt['apple_first']['delta']:+.1f} pts [{100*nt['apple_first']['ci'][0]:+.1f} to "
+        f"{100*nt['apple_first']['ci'][1]:+.1f}] | — |" if nt else None,
         f"| Followed the numbers when they were swapped | {swap_l} (letters), {swap_o} (First/Second) | "
         f"{ci(s15[1]['swap'])}, not interpretable |",
         f"| Picked whichever answer option was listed first | — | "
@@ -427,12 +482,21 @@ def main():
         "of the time.",
         "4. **Ordinary large-cap names have no pull.** Lam Research, Autodesk, Gartner and the rest "
         "changed nothing.",
-        f"5. **A famous name has a large pull.** Relabelling one company \"Apple Inc. (AAPL)\" while "
-        f"leaving its numbers untouched raised how often 3B picked it by {ap_delta:+.0f} points, in "
-        f"{ap3['up']} of 20 pairs. The model then justified the choice with the numbers — the same "
-        "numbers it had found less convincing under the real name." if ap3 else None,
+        f"5. **Name familiarity has a large pull — but only from behind.** Relabelling one company "
+        f"\"Apple Inc. (AAPL)\", numbers untouched, raised how often 3B picked it by "
+        f"{100*nt['apple']['delta']:+.0f} points ({nt['apple']['up']} of 20 pairs; replicated at "
+        f"{100*nt['apple_rep2']['delta']:+.0f}). Microsoft gave {100*nt['microsoft']['delta']:+.0f}. "
+        f"An invented name *cost* {100*nt['norwell']['delta']:+.0f}, so this is a familiarity "
+        f"gradient, not a reaction to any relabelling. The model then justified its choice with the "
+        "numbers — the same numbers it found less convincing under the real name." if nt else None,
+        f"6. **The mirror test fails, and that bounds the claim.** The same Apple label on the "
+        f"company the layout already favours changed nothing "
+        f"({100*nt['apple_first']['delta']:+.1f} pts). The effect shows only where position works "
+        "against the labelled company, so this is not a pure name effect." if nt else None,
         "",
-        "Point 5 is a single run and still needs its controls, listed in "
+        "Points 5 and 6 come from five relabelling tests (Apple twice, Microsoft, an invented "
+        "name, and Apple on the opposite slot), each about 200 answers against a matched "
+        "real-name baseline. Details and what is still open are in "
         "[results/results.md](results/results.md).",
         "",
         "## Repository",
@@ -443,6 +507,8 @@ def main():
         "results/results.md         full write-up: every setup, counts and caveats",
         "results/raw*.jsonl         every model call, with raw output preserved",
         "results/probe.jsonl        recognition check (can the model recall these ratios?)",
+        "results/raw_fake_*.jsonl   the relabelling tests (Apple, Microsoft, invented name)",
+        "results/name_tests.md      relabelling tests vs the real-name baseline",
         "src/                       fetch, pairing, prompts, runner, analysis",
         "```",
         "",
@@ -475,13 +541,18 @@ def main():
         "- **The layout tests and the Apple test were added after seeing the first results.** They "
         "are follow-ups to a bias found in the data, not part of the original plan. A real study "
         "must fix the rotation of company order *and* answer order before the first call.",
+        "- **The name effect is entangled with position.** It appears only in the slot the layout "
+        "disfavours; in the favoured slot the same label does nothing. Any full study has to "
+        "measure the two together rather than report a single name effect.",
         "- **One sector** (technology) and **one fiscal year** (2022).",
         "- **The recognition check came back empty, which is itself a limitation.** Asked to recall "
         "these companies' FY2022 ratios, 3B answered UNKNOWN for all 40, including household "
         "names. That looks like compliance with the \"do not guess\" instruction rather than "
         "absent knowledge, so it does **not** rule out an alternative reading of the Apple result: "
         "the model may be reacting to the numbers not matching Apple's real financials rather than "
-        "to the name itself.",
+        "to the name itself. Against that reading: noticing a mismatch should make a model pick "
+        "the company *less*, and both household names raised it, while the invented name — which "
+        "no model can hold expectations about — lowered it.",
         "- **`results/raw_7b_partial_abandoned.jsonl` is excluded from every number here.** Those "
         "123 rows are the 7B run that froze the machine; they are committed for the record only "
         "and must not be pooled with the rest.",
