@@ -406,12 +406,19 @@ def main():
           "- **First/Second runs were done once each.** The letter runs were done twice.", ""]
 
     L += ["## Should the full study go ahead?", "",
-          "Possibly — but not in its current form. Ordinary large-cap names showed no effect, "
-          "while a household name (Apple) showed a large one on 3B. If that survives its controls, "
-          "the full study has a real effect to chase, and the question shifts from \"large-cap vs "
-          "small-cap\" to \"how famous is the name\". Any full study needs (a) every layout rotated "
-          "and pooled from the start, (b) pairs that include genuinely famous names, and (c) "
-          "models big enough to read the content — 7B and above, on hardware that can hold them.", ""]
+          "Yes, with a changed question. Ordinary large-cap names did nothing, so "
+          "\"large-cap versus small-cap\" is the wrong axis. What does move the model is how "
+          "familiar the name is: a household name gains about 20 points, an invented one loses "
+          "about 12, and the two are separated by roughly 30 points. That replicates, holds for a "
+          "second household name, and survives an invented-name control.", "",
+          "Two things must change in the design. First, the effect appears only in the slot the "
+          "layout disfavours, so name and position have to be measured jointly rather than "
+          "reported as one number. Second, every layout has to be rotated and pooled from the "
+          "first call, not patched in afterwards as it was here.", "",
+          "Open before scaling: whether the mirror asymmetry is a ceiling or a real "
+          "only-helps-from-behind effect, more rungs on the familiarity gradient, and models big "
+          "enough that formatting does not dominate — 7B and above, on hardware that can hold "
+          "them.", ""]
 
     L += ["## Files", "",
           "- `data/pairs.csv` — the 20 matched pairs",
